@@ -8,23 +8,46 @@ console.log('📧 Email Configuration:', {
   passwordSet: !!process.env.EMAIL_PASSWORD
 });
 
-// Create reusable transporter for Gmail with explicit SMTP settings
+// Primary transporter (TLS on port 587)
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp.gmail.com',
   port: Number(process.env.EMAIL_PORT) || 587,
   secure: false, // false for TLS on port 587, true for SSL on port 465
+  family: 4, // Force IPv4 only - CRITICAL for Render compatibility
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD, // App Password, not regular password
   },
-  // Increase timeouts for Render deployment
-  connectionTimeout: 10000, // 10 seconds
-  socketTimeout: 10000,    // 10 seconds
+  // Increase timeouts significantly for Render deployment
+  connectionTimeout: 20000, // 20 seconds
+  socketTimeout: 20000,    // 20 seconds
+  greetingTimeout: 20000,
   maxConnections: 1,       // Use single connection
   maxMessages: 100,
   rateDelta: 1000,
   rateLimit: 5,           // Max 5 messages per second
   // Pool options for better connection handling
+  pool: {
+    maxConnections: 1,
+    maxMessages: 100
+  }
+});
+
+// Fallback transporter (SSL on port 465) - for cases where port 587 fails
+const fallbackTransporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port: 465,
+  secure: true, // SSL on port 465
+  family: 4, // Force IPv4 only
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
+  },
+  connectionTimeout: 20000,
+  socketTimeout: 20000,
+  greetingTimeout: 20000,
+  maxConnections: 1,
+  maxMessages: 100,
   pool: {
     maxConnections: 1,
     maxMessages: 100
@@ -75,6 +98,7 @@ exports.sendEmail = async (to, subject, text, html = null) => {
 
     if (result.success) {
       console.log('✅ [Generic Email] Sent successfully!');
+      console.log('✅ [Generic Email] Transporter used:', result.transporter === 'fallback' ? 'FALLBACK (port 465)' : 'PRIMARY (port 587)');
       console.log('✅ [Generic Email] Message ID:', result.info.messageId);
       return true;
     } else {
@@ -97,23 +121,45 @@ exports.sendEmail = async (to, subject, text, html = null) => {
 };
 
 /**
- * Send email with retry logic for better reliability on Render
+ * Send email with retry logic and fallback transporter for better reliability on Render
  * @param {Object} mailOptions - Mail options for nodemailer
  * @param {number} retries - Number of retry attempts
  * @returns {Promise<Object>} - Mail send result
  */
 const sendMailWithRetry = async (mailOptions, retries = 3) => {
+  // Try primary transporter first
+  console.log('📧 Attempting with PRIMARY transporter (port 587, TLS)...');
+  
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`📧 Send attempt ${attempt}/${retries}...`);
+      console.log(`📧 [Primary] Send attempt ${attempt}/${retries}...`);
       const info = await transporter.sendMail(mailOptions);
-      console.log(`✅ Email sent on attempt ${attempt}`);
-      return { success: true, info };
+      console.log(`✅ [Primary] Email sent on attempt ${attempt}`);
+      return { success: true, info, transporter: 'primary' };
     } catch (error) {
-      console.error(`❌ Attempt ${attempt} failed:`, error.code, error.message);
+      console.error(`❌ [Primary] Attempt ${attempt} failed:`, error.code, '-', error.message);
       
       if (attempt < retries) {
-        // Wait before retrying (exponential backoff: 2s, 4s, 8s)
+        const waitTime = Math.pow(2, attempt) * 1000;
+        console.log(`⏳ Retrying in ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+
+  // If primary fails all attempts, try FALLBACK transporter
+  console.log('\n📧 Primary transporter failed. Attempting with FALLBACK transporter (port 465, SSL)...');
+  
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`📧 [Fallback] Send attempt ${attempt}/${retries}...`);
+      const info = await fallbackTransporter.sendMail(mailOptions);
+      console.log(`✅ [Fallback] Email sent on attempt ${attempt}`);
+      return { success: true, info, transporter: 'fallback' };
+    } catch (error) {
+      console.error(`❌ [Fallback] Attempt ${attempt} failed:`, error.code, '-', error.message);
+      
+      if (attempt < retries) {
         const waitTime = Math.pow(2, attempt) * 1000;
         console.log(`⏳ Retrying in ${waitTime}ms...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
@@ -179,11 +225,12 @@ exports.sendWelcomeEmail = async (userEmail, userName) => {
     
     if (result.success) {
       console.log('✅ [Welcome Email] Email sent successfully!');
+      console.log('✅ [Welcome Email] Transporter used:', result.transporter === 'fallback' ? 'FALLBACK (port 465)' : 'PRIMARY (port 587)');
       console.log('✅ [Welcome Email] Message ID:', result.info.messageId);
       console.log('✅ [Welcome Email] Response:', result.info.response);
       return true;
     } else {
-      console.error('❌ [Welcome Email] Failed after all retries');
+      console.error('❌ [Welcome Email] Failed after all retries (both PRIMARY and FALLBACK)');
       throw result.error;
     }
   } catch (error) {
@@ -270,11 +317,12 @@ exports.sendItemAddedEmail = async (userEmail, userName, itemName, expiryDate) =
     
     if (result.success) {
       console.log('✅ [Item Email] Email sent successfully!');
-      console.log('✅ [Item Email] Message ID:', result.info.messageId);
-      console.log('✅ [Item Email] Response:', result.info.response);
+      console.log('✅ [Item Added Email] Transporter used:', result.transporter === 'fallback' ? 'FALLBACK (port 465)' : 'PRIMARY (port 587)');
+      console.log('✅ [Item Added Email] Message ID:', result.info.messageId);
+      console.log('✅ [Item Added Email] Response:', result.info.response);
       return true;
     } else {
-      console.error('❌ [Item Email] Failed after all retries');
+      console.error('❌ [Item Added Email] Failed after all retries (both PRIMARY and FALLBACK)');
       throw result.error;
     }
   } catch (error) {
@@ -363,11 +411,12 @@ exports.sendSubscriptionAddedEmail = async (userEmail, userName, subscriptionNam
     
     if (result.success) {
       console.log('✅ [Subscription Email] Email sent successfully!');
-      console.log('✅ [Subscription Email] Message ID:', result.info.messageId);
-      console.log('✅ [Subscription Email] Response:', result.info.response);
+      console.log('✅ [Subscription Added Email] Transporter used:', result.transporter === 'fallback' ? 'FALLBACK (port 465)' : 'PRIMARY (port 587)');
+      console.log('✅ [Subscription Added Email] Message ID:', result.info.messageId);
+      console.log('✅ [Subscription Added Email] Response:', result.info.response);
       return true;
     } else {
-      console.error('❌ [Subscription Email] Failed after all retries');
+      console.error('❌ [Subscription Added Email] Failed after all retries (both PRIMARY and FALLBACK)');
       throw result.error;
     }
     
@@ -472,10 +521,11 @@ exports.sendExpiryReminderEmail = async (userEmail, userName, itemName, expiryDa
     
     if (result.success) {
       console.log('✅ [Expiry Reminder] Email sent successfully!');
+      console.log('✅ [Expiry Reminder] Transporter used:', result.transporter === 'fallback' ? 'FALLBACK (port 465)' : 'PRIMARY (port 587)');
       console.log('✅ [Expiry Reminder] Message ID:', result.info.messageId);
       return true;
     } else {
-      console.error('❌ [Expiry Reminder] Failed after all retries');
+      console.error('❌ [Expiry Reminder] Failed after all retries (both PRIMARY and FALLBACK)');
       throw result.error;
     }
   } catch (error) {
@@ -577,10 +627,11 @@ exports.sendSubscriptionRenewalEmail = async (userEmail, userName, subscriptionN
     
     if (result.success) {
       console.log('✅ [Subscription Renewal] Email sent successfully!');
+      console.log('✅ [Subscription Renewal] Transporter used:', result.transporter === 'fallback' ? 'FALLBACK (port 465)' : 'PRIMARY (port 587)');
       console.log('✅ [Subscription Renewal] Message ID:', result.info.messageId);
       return true;
     } else {
-      console.error('❌ [Subscription Renewal] Failed after all retries');
+      console.error('❌ [Subscription Renewal] Failed after all retries (both PRIMARY and FALLBACK)');
       throw result.error;
     }
   } catch (error) {
