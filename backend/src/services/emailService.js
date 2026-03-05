@@ -17,8 +17,18 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD, // App Password, not regular password
   },
-  connectionTimeout: 5000,
-  socketTimeout: 5000
+  // Increase timeouts for Render deployment
+  connectionTimeout: 10000, // 10 seconds
+  socketTimeout: 10000,    // 10 seconds
+  maxConnections: 1,       // Use single connection
+  maxMessages: 100,
+  rateDelta: 1000,
+  rateLimit: 5,           // Max 5 messages per second
+  // Pool options for better connection handling
+  pool: {
+    maxConnections: 1,
+    maxMessages: 100
+  }
 });
 
 // Verify email configuration
@@ -61,12 +71,18 @@ exports.sendEmail = async (to, subject, text, html = null) => {
       ...(html && { html: html })
     };
 
-    const info = await transporter.sendMail(mailOptions);
+    const result = await sendMailWithRetry(mailOptions, 3);
 
-    console.log('✅ [Generic Email] Sent successfully!');
-    console.log('✅ [Generic Email] Message ID:', info.messageId);
-
-    return true;
+    if (result.success) {
+      console.log('✅ [Generic Email] Sent successfully!');
+      console.log('✅ [Generic Email] Message ID:', result.info.messageId);
+      return true;
+    } else {
+      console.error('❌ [Generic Email] Failed after retries');
+      console.error('❌ Error code:', result.error.code);
+      console.error('❌ Error message:', result.error.message);
+      return false;
+    }
   } catch (error) {
     console.error('❌ [Generic Email] Failed to send');
     console.error('❌ Error code:', error.code);
@@ -80,6 +96,33 @@ exports.sendEmail = async (to, subject, text, html = null) => {
   }
 };
 
+/**
+ * Send email with retry logic for better reliability on Render
+ * @param {Object} mailOptions - Mail options for nodemailer
+ * @param {number} retries - Number of retry attempts
+ * @returns {Promise<Object>} - Mail send result
+ */
+const sendMailWithRetry = async (mailOptions, retries = 3) => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`📧 Send attempt ${attempt}/${retries}...`);
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`✅ Email sent on attempt ${attempt}`);
+      return { success: true, info };
+    } catch (error) {
+      console.error(`❌ Attempt ${attempt} failed:`, error.code, error.message);
+      
+      if (attempt < retries) {
+        // Wait before retrying (exponential backoff: 2s, 4s, 8s)
+        const waitTime = Math.pow(2, attempt) * 1000;
+        console.log(`⏳ Retrying in ${waitTime}ms...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      } else {
+        return { success: false, error };
+      }
+    }
+  }
+};
 
 exports.sendWelcomeEmail = async (userEmail, userName) => {
   try {
@@ -130,15 +173,19 @@ exports.sendWelcomeEmail = async (userEmail, userName) => {
     };
 
     console.log('📧 [Welcome Email] Mail options prepared');
-    console.log('📧 [Welcome Email] Attempting to send email...');
+    console.log('📧 [Welcome Email] Attempting to send email with retry logic...');
     
-    const info = await transporter.sendMail(mailOptions);
+    const result = await sendMailWithRetry(mailOptions, 3);
     
-    console.log('✅ [Welcome Email] Email sent successfully!');
-    console.log('✅ [Welcome Email] Message ID:', info.messageId);
-    console.log('✅ [Welcome Email] Response:', info.response);
-    
-    return true;
+    if (result.success) {
+      console.log('✅ [Welcome Email] Email sent successfully!');
+      console.log('✅ [Welcome Email] Message ID:', result.info.messageId);
+      console.log('✅ [Welcome Email] Response:', result.info.response);
+      return true;
+    } else {
+      console.error('❌ [Welcome Email] Failed after all retries');
+      throw result.error;
+    }
   } catch (error) {
     console.error('❌ [Welcome Email] FAILED TO SEND');
     console.error('❌ [Welcome Email] Error type:', error.name);
@@ -217,15 +264,19 @@ exports.sendItemAddedEmail = async (userEmail, userName, itemName, expiryDate) =
     };
 
     console.log('📧 [Item Email] Mail options prepared');
-    console.log('📧 [Item Email] Attempting to send email...');
+    console.log('📧 [Item Email] Attempting to send email with retry logic...');
     
-    const info = await transporter.sendMail(mailOptions);
+    const result = await sendMailWithRetry(mailOptions, 3);
     
-    console.log('✅ [Item Email] Email sent successfully!');
-    console.log('✅ [Item Email] Message ID:', info.messageId);
-    console.log('✅ [Item Email] Response:', info.response);
-    
-    return true;
+    if (result.success) {
+      console.log('✅ [Item Email] Email sent successfully!');
+      console.log('✅ [Item Email] Message ID:', result.info.messageId);
+      console.log('✅ [Item Email] Response:', result.info.response);
+      return true;
+    } else {
+      console.error('❌ [Item Email] Failed after all retries');
+      throw result.error;
+    }
   } catch (error) {
     console.error('❌ [Item Email] FAILED TO SEND');
     console.error('❌ [Item Email] Error type:', error.name);
@@ -306,13 +357,19 @@ exports.sendSubscriptionAddedEmail = async (userEmail, userName, subscriptionNam
     };
 
     console.log('📧 [Subscription Email] Mail options prepared');
-    console.log('📧 [Subscription Email] Attempting to send email...');
+    console.log('📧 [Subscription Email] Attempting to send email with retry logic...');
     
-    const info = await transporter.sendMail(mailOptions);
+    const result = await sendMailWithRetry(mailOptions, 3);
     
-    console.log('✅ [Subscription Email] Email sent successfully!');
-    console.log('✅ [Subscription Email] Message ID:', info.messageId);
-    console.log('✅ [Subscription Email] Response:', info.response);
+    if (result.success) {
+      console.log('✅ [Subscription Email] Email sent successfully!');
+      console.log('✅ [Subscription Email] Message ID:', result.info.messageId);
+      console.log('✅ [Subscription Email] Response:', result.info.response);
+      return true;
+    } else {
+      console.error('❌ [Subscription Email] Failed after all retries');
+      throw result.error;
+    }
     
     return true;
   } catch (error) {
@@ -409,14 +466,18 @@ exports.sendExpiryReminderEmail = async (userEmail, userName, itemName, expiryDa
     };
 
     console.log('📧 [Expiry Reminder] Mail options prepared');
-    console.log('📧 [Expiry Reminder] Attempting to send email...');
+    console.log('📧 [Expiry Reminder] Attempting to send email with retry logic...');
 
-    const info = await transporter.sendMail(mailOptions);
+    const result = await sendMailWithRetry(mailOptions, 3);
     
-    console.log('✅ [Expiry Reminder] Email sent successfully!');
-    console.log('✅ [Expiry Reminder] Message ID:', info.messageId);
-    
-    return true;
+    if (result.success) {
+      console.log('✅ [Expiry Reminder] Email sent successfully!');
+      console.log('✅ [Expiry Reminder] Message ID:', result.info.messageId);
+      return true;
+    } else {
+      console.error('❌ [Expiry Reminder] Failed after all retries');
+      throw result.error;
+    }
   } catch (error) {
     console.error('❌ [Expiry Reminder] FAILED TO SEND');
     console.error('❌ [Expiry Reminder] Error type:', error.name);
@@ -510,14 +571,18 @@ exports.sendSubscriptionRenewalEmail = async (userEmail, userName, subscriptionN
     };
 
     console.log('📧 [Subscription Renewal] Mail options prepared');
-    console.log('📧 [Subscription Renewal] Attempting to send email...');
+    console.log('📧 [Subscription Renewal] Attempting to send email with retry logic...');
 
-    const info = await transporter.sendMail(mailOptions);
+    const result = await sendMailWithRetry(mailOptions, 3);
     
-    console.log('✅ [Subscription Renewal] Email sent successfully!');
-    console.log('✅ [Subscription Renewal] Message ID:', info.messageId);
-    
-    return true;
+    if (result.success) {
+      console.log('✅ [Subscription Renewal] Email sent successfully!');
+      console.log('✅ [Subscription Renewal] Message ID:', result.info.messageId);
+      return true;
+    } else {
+      console.error('❌ [Subscription Renewal] Failed after all retries');
+      throw result.error;
+    }
   } catch (error) {
     console.error('❌ [Subscription Renewal] FAILED TO SEND');
     console.error('❌ [Subscription Renewal] Error type:', error.name);
