@@ -22,15 +22,9 @@ const transporter = nodemailer.createTransport({
   connectionTimeout: 20000, // 20 seconds
   socketTimeout: 20000,    // 20 seconds
   greetingTimeout: 20000,
+  pool: true,              // Enable connection pooling
   maxConnections: 1,       // Use single connection
-  maxMessages: 100,
-  rateDelta: 1000,
-  rateLimit: 5,           // Max 5 messages per second
-  // Pool options for better connection handling
-  pool: {
-    maxConnections: 1,
-    maxMessages: 100
-  }
+  maxMessages: 100
 });
 
 // Fallback transporter (SSL on port 465) - for cases where port 587 fails
@@ -46,12 +40,9 @@ const fallbackTransporter = nodemailer.createTransport({
   connectionTimeout: 20000,
   socketTimeout: 20000,
   greetingTimeout: 20000,
+  pool: true,              // Enable connection pooling
   maxConnections: 1,
-  maxMessages: 100,
-  pool: {
-    maxConnections: 1,
-    maxMessages: 100
-  }
+  maxMessages: 100
 });
 
 // Verify email configuration

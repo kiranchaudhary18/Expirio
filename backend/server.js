@@ -1,3 +1,7 @@
+// Force IPv4 preference to avoid ENETUNREACH errors on cloud servers like Render
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -74,7 +78,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3002;
 
 app.listen(PORT, () => {
   console.log(`Expirio Backend Server running on port ${PORT}`);
