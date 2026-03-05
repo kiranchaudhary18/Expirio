@@ -1,0 +1,9 @@
+{
+  "images": {
+    "icon": "Place a 1024x1024 PNG file named icon.png here",
+    "splash": "Place a 1284x2778 PNG file named splash.png here",
+    "adaptive-icon": "Place a 1024x1024 PNG file named adaptive-icon.png here",
+    "favicon": "Place a 48x48 PNG file named favicon.png here"
+  },
+  "instructions": "Replace this JSON file with actual image assets before building the app"
+}

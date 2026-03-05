@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "Expirio",
+    "slug": "expirio",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "scheme": "expirio",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.expirio.app"
+    },
+    "android": {
+      "package": "com.expirio.app",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      "expo-web-browser"
+    ]
+  }
+}
