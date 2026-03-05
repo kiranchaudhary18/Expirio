@@ -1,0 +1,183 @@
+{
+  "info": {
+    "name": "Expirio API Collection",
+    "description": "Complete API collection for Expirio - Smart Expiry Tracker",
+    "version": "1.0.0"
+  },
+  "baseUrl": "http://localhost:3000",
+  "requests": [
+    {
+      "name": "Health Check",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/health",
+      "description": "Check if the server is running"
+    },
+    {
+      "name": "Create Item",
+      "method": "POST",
+      "url": "{{baseUrl}}/api/items",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "userId": "user123",
+        "itemName": "Milk",
+        "category": "Dairy",
+        "expiryDate": "2024-12-31",
+        "reminderDaysBefore": 2,
+        "itemImage": "https://example.com/milk.jpg",
+        "notes": "Keep refrigerated"
+      },
+      "description": "Create a new expiry item"
+    },
+    {
+      "name": "Get All User Items",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/items/user123",
+      "description": "Get all items for a specific user"
+    },
+    {
+      "name": "Get Single Item",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/item/{itemId}",
+      "description": "Get details of a single item"
+    },
+    {
+      "name": "Update Item",
+      "method": "PUT",
+      "url": "{{baseUrl}}/api/item/{itemId}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "itemName": "Milk (Updated)",
+        "notes": "Updated notes"
+      },
+      "description": "Update an existing item"
+    },
+    {
+      "name": "Delete Item",
+      "method": "DELETE",
+      "url": "{{baseUrl}}/api/item/{itemId}",
+      "description": "Delete an item"
+    },
+    {
+      "name": "Create Subscription",
+      "method": "POST",
+      "url": "{{baseUrl}}/api/subscriptions",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "userId": "user123",
+        "subscriptionName": "Netflix",
+        "renewalDate": "2024-12-15",
+        "amount": 199,
+        "renewalReminderDays": 3
+      },
+      "description": "Create a new subscription"
+    },
+    {
+      "name": "Get User Subscriptions",
+      "method": "GET",
+      "url": "{{baseUrl}}/api/subscriptions/user123",
+      "description": "Get all subscriptions for a user"
+    },
+    {
+      "name": "Update Subscription",
+      "method": "PUT",
+      "url": "{{baseUrl}}/api/subscription/{subscriptionId}",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "amount": 299,
+        "renewalReminderDays": 5
+      },
+      "description": "Update a subscription"
+    },
+    {
+      "name": "Delete Subscription",
+      "method": "DELETE",
+      "url": "{{baseUrl}}/api/subscription/{subscriptionId}",
+      "description": "Delete a subscription"
+    }
+  ],
+  "examples": {
+    "itemExamples": {
+      "createItemRequest": {
+        "userId": "user123",
+        "itemName": "Yogurt",
+        "category": "Dairy",
+        "expiryDate": "2024-03-20",
+        "reminderDaysBefore": 1,
+        "itemImage": "https://example.com/yogurt.jpg",
+        "notes": "Store in cool place"
+      },
+      "createItemResponse": {
+        "success": true,
+        "message": "Item created successfully",
+        "data": {
+          "_id": "507f1f77bcf86cd799439011",
+          "userId": "user123",
+          "itemName": "Yogurt",
+          "category": "Dairy",
+          "expiryDate": "2024-03-20T00:00:00.000Z",
+          "reminderDaysBefore": 1,
+          "itemImage": "https://example.com/yogurt.jpg",
+          "notes": "Store in cool place",
+          "expiryStatus": "safe",
+          "createdAt": "2024-03-15T10:30:00.000Z",
+          "__v": 0
+        }
+      },
+      "getItemsResponse": {
+        "success": true,
+        "data": [
+          {
+            "_id": "507f1f77bcf86cd799439011",
+            "userId": "user123",
+            "itemName": "Yogurt",
+            "category": "Dairy",
+            "expiryDate": "2024-03-20T00:00:00.000Z",
+            "expiryStatus": "safe",
+            "createdAt": "2024-03-15T10:30:00.000Z"
+          },
+          {
+            "_id": "507f1f77bcf86cd799439012",
+            "userId": "user123",
+            "itemName": "Cheese",
+            "category": "Dairy",
+            "expiryDate": "2024-03-18T00:00:00.000Z",
+            "expiryStatus": "expiringSoon",
+            "createdAt": "2024-03-15T10:35:00.000Z"
+          }
+        ],
+        "count": 2
+      }
+    },
+    "subscriptionExamples": {
+      "createSubscriptionRequest": {
+        "userId": "user123",
+        "subscriptionName": "Amazon Prime",
+        "renewalDate": "2024-12-25",
+        "amount": 1499,
+        "renewalReminderDays": 7
+      },
+      "createSubscriptionResponse": {
+        "success": true,
+        "message": "Subscription created successfully",
+        "data": {
+          "_id": "507f1f77bcf86cd799439013",
+          "userId": "user123",
+          "subscriptionName": "Amazon Prime",
+          "renewalDate": "2024-12-25T00:00:00.000Z",
+          "amount": 1499,
+          "renewalReminderDays": 7,
+          "createdAt": "2024-03-15T10:40:00.000Z",
+          "__v": 0
+        }
+      }
+    }
+  }
+}
