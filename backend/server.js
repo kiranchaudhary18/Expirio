@@ -41,7 +41,18 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'Expirio Backend API is running',
-    timestamp: new Date()
+    timestamp: new Date(),
+    emailConfigured: !!(process.env.EMAIL_USER && process.env.EMAIL_PASSWORD),
+    emailConfig: {
+      host: process.env.EMAIL_HOST || 'Not set',
+      port: process.env.EMAIL_PORT || 'Not set',
+      user: process.env.EMAIL_USER ? 'Configured' : 'Not set',
+      password: process.env.EMAIL_PASSWORD ? 'Configured' : 'Not set'
+    },
+    database: {
+      connected: mongoose.connection.readyState === 1,
+      uri: process.env.MONGODB_URI ? 'Configured' : 'Not set'
+    }
   });
 });
 

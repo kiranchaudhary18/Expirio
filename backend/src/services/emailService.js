@@ -1,40 +1,86 @@
 const nodemailer = require('nodemailer');
 
-// Create reusable transporter for Gmail
+// Log email configuration on startup
+console.log('📧 Email Configuration:', {
+  host: process.env.EMAIL_HOST || 'NOT SET',
+  port: process.env.EMAIL_PORT || 'NOT SET',
+  user: process.env.EMAIL_USER ? process.env.EMAIL_USER.split('@')[0] + '@...' : 'NOT SET',
+  passwordSet: !!process.env.EMAIL_PASSWORD
+});
+
+// Create reusable transporter for Gmail with explicit SMTP settings
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // Explicitly use Gmail service
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port: Number(process.env.EMAIL_PORT) || 587,
+  secure: false, // false for TLS on port 587, true for SSL on port 465
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD, // App Password, not regular password
   },
-  // Gmail specific settings
-  tls: {
-    rejectUnauthorized: false
-  }
+  connectionTimeout: 5000,
+  socketTimeout: 5000
 });
 
 // Verify email configuration
 transporter.verify((error, success) => {
   if (error) {
-    console.error('❌ Email Service Configuration Error:', error.message);
-    console.error('❌ Email verification failed. Check your credentials:');
-    console.error('   - EMAIL_USER:', process.env.EMAIL_USER ? '✓ Set' : '✗ Missing');
-    console.error('   - EMAIL_PASSWORD:', process.env.EMAIL_PASSWORD ? '✓ Set' : '✗ Missing');
+    console.error('❌ Email Service Configuration Error');
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Configuration:', {
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      user: process.env.EMAIL_USER ? 'Set' : 'Missing',
+      password: process.env.EMAIL_PASSWORD ? 'Set' : 'Missing'
+    });
   } else {
-    console.log('✅ Email Service is properly configured and ready to send emails');
-    console.log('✅ SMTP connection established successfully');
+    console.log('✅ Email Service Verified Successfully');
+    console.log('✅ SMTP Connection Ready');
+    console.log('Connected to:', process.env.EMAIL_HOST, 'on port', process.env.EMAIL_PORT);
   }
 });
 
-console.log('📧 Email Service Initialized:', {
-  service: 'Gmail',
-  user: process.env.EMAIL_USER || 'NOT SET',
-  status: 'Verifying...',
-});
-
 /**
- * Send Welcome Email
+ * Generic reusable email function
+ * @param {string} to - Recipient email address
+ * @param {string} subject - Email subject
+ * @param {string} text - Plain text email body
+ * @param {string} html - HTML email body (optional)
+ * @returns {Promise<boolean>} - Returns true if email sent successfully
  */
+exports.sendEmail = async (to, subject, text, html = null) => {
+  try {
+    console.log('📧 [Generic Email] Sending to:', to);
+    console.log('📧 [Generic Email] Subject:', subject);
+
+    const mailOptions = {
+      from: `Expirio <${process.env.EMAIL_USER}>`,
+      to: to,
+      subject: subject,
+      text: text,
+      ...(html && { html: html })
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+
+    console.log('✅ [Generic Email] Sent successfully!');
+    console.log('✅ [Generic Email] Message ID:', info.messageId);
+
+    return true;
+  } catch (error) {
+    console.error('❌ [Generic Email] Failed to send');
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error message:', error.message);
+
+    if (error.response) {
+      console.error('❌ SMTP Response:', error.response);
+    }
+
+    return false;
+  }
+};
+
+
 exports.sendWelcomeEmail = async (userEmail, userName) => {
   try {
     console.log('📧 [Welcome Email] Starting email send process');
