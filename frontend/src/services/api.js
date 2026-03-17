@@ -11,7 +11,7 @@ const API_MODE = 'production'; // ← TOGGLE THIS: 'production' or 'development'
 const PRODUCTION_API = 'https://expirio-back.onrender.com/api';
 
 // Development URL (Local machine)
-const LOCAL_IP_ADDRESS = '10.122.118.171'; // ← Update to your machine's IPv4 (run: ipconfig)
+const LOCAL_IP_ADDRESS = '0.122.118.171'; // ← Update to your machine's IPv4 (run: ipconfig)
 const LOCAL_PORT = 3002;
 const LOCAL_DEV_API = `http://localhost:${LOCAL_PORT}/api`; // Default for web/iOS simulator
 

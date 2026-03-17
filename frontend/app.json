@@ -5,6 +5,12 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#667eea"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -15,6 +21,10 @@
     },
     "android": {
       "package": "com.expirio.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#667eea"
+      },
       "permissions": [
         "android.permission.CAMERA"
       ]
@@ -22,6 +32,11 @@
     "plugins": [
       "@react-native-community/datetimepicker",
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "be7ff563-7108-4368-b40a-758ac7ac193a"
+      }
+    }
   }
 }
